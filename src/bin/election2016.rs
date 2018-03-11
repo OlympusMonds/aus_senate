@@ -36,9 +36,9 @@ fn main_with_result() -> Result<(), Box<Error>> {
     let candidates_file = File::open(candidates_file_name)?;
     let all_candidates = candidates2016::parse(candidates_file)?;
 
-    for c in &all_candidates {
-        debug!("{}: {} {} ({})", c.id, c.other_names, c.surname, c.party);
-    }
+    //for c in &all_candidates {
+    //    println!("{}: {} {} ({})", c.id, c.other_names, c.surname, c.party);
+    //}
 
     // Extract candidate and group information from the complete list of ballots.
     let candidates = get_state_candidates(&all_candidates, state);
@@ -47,7 +47,7 @@ fn main_with_result() -> Result<(), Box<Error>> {
 
     let constraints = Constraints::official();
 
-    debug!("Num groups: {}", groups.len());
+    println!("Num groups: {}", groups.len());
     trace!("Groups: {:#?}", groups);
 
     let prefs_file = File::open(prefs_file_name)?;

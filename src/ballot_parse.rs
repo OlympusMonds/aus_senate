@@ -161,6 +161,10 @@ pub fn parse_ballot_str(
         .and_then(|v| constraints.check_above(v))
         .map(flatten_group_pref_map);
 
+    // for abl in above_the_line.iter() {
+    //     println!("{:?}", abl);
+    // }
+
     let below_the_line = create_pref_map(pref_iter, candidates)
         .and_then(remove_repeats_and_gaps)
         .and_then(|v| constraints.check_below(v))
@@ -193,8 +197,77 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap) -> Vec<CandidateId> 
     let size = group_pref_map.values().map(|x| x.len()).sum();
     let mut flat = Vec::with_capacity(size);
 
-    for (_, group) in group_pref_map {
-        flat.extend_from_slice(group);
+    let small_parties_first = true;
+
+    let labor = [1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1177, 1178, 1192, 1193, 1194, 1195, 1196, 1197, 1310, 1311, 1312, 1313, 1314, 1315, 1374, 1375, 1376, 1377, 1378, 1379, 1436, 1437, 1438, 1439, 1440, 1441, 1442, 1443, 1552, 1553, 1554, 1555, 1556, 1557, 1558, 998, 999];
+    let libs = [1004, 1005, 1028, 1029, 1031, 1033, 1034, 1036, 1037, 1039, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1330, 1331, 1332, 1333, 1334, 1335, 1387, 1388, 1389, 1390, 1391, 1392, 1501, 1503, 1504, 1505, 1506, 1604, 1605, 1606, 1607, 1608, 1609, 1610];
+
+    //
+    // TODO: here is where the data looks like this:
+    // gpm: {1: [1004, 1005], 2: [1010, 1011], 3: [994, 995], 4: [1006, 1007], 5: [1002, 1003], 6: [998, 999]}
+    // Where the [1004, 1005] are potential senators from the SAME party
+    // I'm guessing the order (1, 2, 3, ...) is which one people put first
+
+    //for (idx, group) in group_pref_map {
+    //    println!("{}, {:?}", idx, group);
+    //}
+
+    // println!("\nNew vote, size: {}", size);
+
+
+    let mut found = false;
+    let mut found_lib : u32 = 0;
+    let mut found_lab : u32 = 0;
+
+    for (idx, group) in &group_pref_map {
+        if small_parties_first { 
+            for grp in group.iter() {
+                if labor.contains(&grp) {
+                    found_lab = *idx;
+                    found = true;
+                    break
+                }
+                else if libs.contains(&grp) {
+                    found_lib = *idx;
+                    found = true;
+                    break
+                }
+            }
+
+            if found == false {
+                // Let the other parties go first
+                flat.extend_from_slice(group);
+            }
+            found = false;
+        } else {
+            flat.extend_from_slice(group);
+        }
+    }
+
+    if small_parties_first { 
+        if found_lib > 0 && found_lab > 0 {
+            let lib_cans = group_pref_map.get(&found_lib).unwrap();
+            let lab_cans = group_pref_map.get(&found_lab).unwrap();
+
+            // found both major parties
+            if found_lib < found_lab { 
+                // libs are preferred over lab 
+                flat.extend_from_slice(lib_cans);
+                flat.extend_from_slice(lab_cans);
+            } else {
+                // lab is preffered over libs
+                flat.extend_from_slice(lab_cans);
+                flat.extend_from_slice(lib_cans);
+            }
+        } else if found_lib > 0 {
+            // found only the libs
+            let lib_cans = group_pref_map.get(&found_lib).unwrap();
+            flat.extend_from_slice(lib_cans);
+        } else if found_lab > 0 {
+            // found only lab
+            let lab_cans = group_pref_map.get(&found_lab).unwrap();
+            flat.extend_from_slice(lab_cans);
+        }
     }
 
     flat
@@ -246,6 +319,7 @@ where
 
         let value = func(index);
         let prev_value = map.insert(pref, value);
+        //println!("pref: {:?}, index: {:?}", pref, index);
 
         // If a preference is repeated, we ignore that preference and any
         // higher numbered preferences.

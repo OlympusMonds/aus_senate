@@ -8,6 +8,7 @@ import fetch_data
 from datetime import datetime
 
 cargo = ["cargo", "run", "--release", "--bin", "election2016", "--"]
+#cargo = ["cargo", "run", "--bin", "election2016", "--"]
 
 def run():
     with open("states.json", "r") as f:
