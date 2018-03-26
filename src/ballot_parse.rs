@@ -152,6 +152,7 @@ pub fn parse_ballot_str(
     groups: &[Group],
     candidates: &[CandidateId],
     constraints: &Constraints,
+    experiment_num: usize,
 ) -> IOBallot {
     // Iterator over integer preferences.
     let mut pref_iter = pref_string.split(',');
@@ -159,7 +160,7 @@ pub fn parse_ballot_str(
     let above_the_line = create_group_pref_map(pref_iter.by_ref().take(groups.len()), groups)
         .and_then(remove_repeats_and_gaps)
         .and_then(|v| constraints.check_above(v))
-        .map(flatten_group_pref_map);
+        .map(|ok| flatten_group_pref_map(ok, experiment_num));
 
     // for abl in above_the_line.iter() {
     //     println!("{:?}", abl);
@@ -193,11 +194,14 @@ pub fn flatten_pref_map(pref_map: PrefMap) -> Vec<CandidateId> {
     pref_map.into_iter().map(|(_, x)| x).collect()
 }
 
-pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap) -> Vec<CandidateId> {
+pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usize) -> Vec<CandidateId> {
     let size = group_pref_map.values().map(|x| x.len()).sum();
     let mut flat = Vec::with_capacity(size);
 
-    let small_parties_first = true;
+    let mut small_parties_first = false;
+    if experiment_num == 1 {
+        small_parties_first = true;
+    }
 
     let labor = [1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1177, 1178, 1192, 1193, 1194, 1195, 1196, 1197, 1310, 1311, 1312, 1313, 1314, 1315, 1374, 1375, 1376, 1377, 1378, 1379, 1436, 1437, 1438, 1439, 1440, 1441, 1442, 1443, 1552, 1553, 1554, 1555, 1556, 1557, 1558, 998, 999];
     let libs = [1004, 1005, 1028, 1029, 1031, 1033, 1034, 1036, 1037, 1039, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1330, 1331, 1332, 1333, 1334, 1335, 1387, 1388, 1389, 1390, 1391, 1392, 1501, 1503, 1504, 1505, 1506, 1604, 1605, 1606, 1607, 1608, 1609, 1610];

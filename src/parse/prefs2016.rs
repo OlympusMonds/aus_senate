@@ -23,9 +23,10 @@ pub fn parse_single_ballot(
     groups: &[Group],
     candidates: &[CandidateId],
     constraints: &Constraints,
+    experiment_num: usize,
 ) -> IOBallot {
     match raw_row {
-        Ok(row) => parse_ballot_str(&row.preferences, groups, candidates, constraints),
+        Ok(row) => parse_ballot_str(&row.preferences, groups, candidates, constraints, experiment_num),
         Err(e) => Err(InputError(From::from(e))),
     }
 }
@@ -37,10 +38,10 @@ pub fn parse_single_ballot(
 // See: https://gist.github.com/michaelsproul/20e18f52fc1be2bd05b2767ab6bd166c
 #[macro_export]
 macro_rules! parse_preferences_file {
-    ($reader:expr, $groups:expr, $candidates:expr, $constraints:expr) => {{
+    ($reader:expr, $groups:expr, $candidates:expr, $constraints:expr, $experiment_num:expr) => {{
         use $crate::parse::prefs2016::{PrefRow, parse_single_ballot};
         $reader
             .deserialize::<PrefRow>()
-            .map(|raw_row| parse_single_ballot(raw_row, $groups, $candidates, $constraints))
+            .map(|raw_row| parse_single_ballot(raw_row, $groups, $candidates, $constraints, $experiment_num))
     }}
 }

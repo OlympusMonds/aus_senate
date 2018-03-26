@@ -15,13 +15,14 @@ use aus_senate::voting::*;
 use aus_senate::ballot_parse::*;
 use aus_senate::parse::candidates2016;
 
+
 fn main_with_result() -> Result<(), Box<Error>> {
     env_logger::init()?;
 
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 4 && args.len() != 5 {
-        println!("Usage: ./election2016 <candidates file> <prefs file> <state> [num candidates]");
+    if args.len() != 4 && args.len() != 5 && args.len() != 6 {
+        println!("Usage: ./election2016 <candidates file> <prefs file> <state> [num candidates] [experiment number]");
         Err("invalid command line arguments.".to_string())?;
     }
 
@@ -30,7 +31,11 @@ fn main_with_result() -> Result<(), Box<Error>> {
     let state = &args[3];
     let num_candidates = match args.get(4) {
         Some(x) => x.parse::<usize>()?,
-        None => 12,
+        None => 0,
+    };
+    let experiment_number = match args.get(5) {
+        Some(x) => x.parse::<usize>()?,
+        None => 0,
     };
 
     let candidates_file = File::open(candidates_file_name)?;
@@ -55,7 +60,7 @@ fn main_with_result() -> Result<(), Box<Error>> {
     let mut csv_reader = csv::ReaderBuilder::new()
         .comment(Some('-' as u8))
         .from_reader(prefs_file);
-    let ballots_iter = parse_preferences_file!(csv_reader, &groups, &candidate_ids, &constraints);
+    let ballots_iter = parse_preferences_file!(csv_reader, &groups, &candidate_ids, &constraints, experiment_number);
 
     let election_result = decide_election(&candidates, &[], ballots_iter, num_candidates)?;
 
@@ -70,9 +75,9 @@ fn main_with_result() -> Result<(), Box<Error>> {
         );
     }
 
-    if election_result.tied {
-        println!("Tie for the last place");
-    }
+    // if election_result.tied {
+    //     println!("Tie for the last place");
+    // }
 
     Ok(())
 }
