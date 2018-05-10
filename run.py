@@ -11,6 +11,15 @@ from collections import defaultdict
 cargo = ["cargo", "run", "--release", "--bin", "election2016", "--"]
 #cargo = ["cargo", "run", "--bin", "election2016", "--"]
 
+experiments = {"exp1_no-change" : 1,
+               "exp2_bump-1" : 2,
+               "exp3_bump-2" : 3,
+               "exp4_bump-3" : 4,
+               "exp5_bump-4" : 5,
+               "exp6_bump-bottom" : 6,}
+
+results = defaultdict(list)
+
 def run():
     with open("states.json", "r") as f:
         states = json.load(f)
@@ -25,29 +34,37 @@ def run():
 
     candidate_ordering = os.path.join(data_dir, "candidate_ordering.csv")
 
-    party_count = defaultdict(int)
 
-    for (state, num_senators) in sorted(states.items()):
-        print("Running election for {} at {}".format(state, timestamp()))
 
-        state_csv = os.path.join(data_dir, "{}.csv".format(state))
+    for exp_name, exp_id in experiments.items():
 
-        args = [candidate_ordering, state_csv, state, str(num_senators), '1']
+        for (state, num_senators) in sorted(states.items()):
+            print("Running election for {} at {}".format(state, timestamp()))
 
-        #output = sp.check_output(cargo + args, stderr=sp.DEVNULL, universal_newlines=True)
-        output = sp.check_output(cargo + args, universal_newlines=True)
-        # Get party counts
-        elected_people = output.split("=== Elected ===\n")[-1]
-        per_person = elected_people.split("\n")
-        for person in per_person:
-            if person:
-                party = person.split('(')[-1].split(')')[0]
-                party_count[party] += 1
+            state_csv = os.path.join(data_dir, "{}.csv".format(state))
 
-        json_out = { "state": state, "results": party_count }
-        print(json.dumps(json_out)) 
+            args = [candidate_ordering, state_csv, state, str(num_senators), str(exp_id)]
 
-        print("Completed election for {} at {}".format(state, timestamp()))
+            #output = sp.check_output(cargo + args, stderr=sp.DEVNULL, universal_newlines=True)
+            output = sp.check_output(cargo + args, universal_newlines=True)
+            # Get party counts
+            party_count = defaultdict(int)
+            elected_people = output.split("=== Elected ===\n")[-1]
+            per_person = elected_people.split("\n")
+            for person in per_person:
+                if person:
+                    party = person.split('(')[-1].split(')')[0]
+                    party_count[party] += 1
+
+            json_out = { "state": state, "results": party_count }
+            results[exp_name].append(json_out)
+            #print(exp_name, "\n", json.dumps(json_out)) 
+
+            print("Completed election for {} at {}".format(state, timestamp()))
+        #print(json.dumps(results))
+
+    with open("out.json", 'w') as ok:
+        json.dump(results, ok)
 
 def timestamp():
     return datetime.now().isoformat()
