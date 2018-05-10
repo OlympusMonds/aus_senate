@@ -198,12 +198,11 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
     let size = group_pref_map.values().map(|x| x.len()).sum();
     let mut flat = Vec::with_capacity(size);
 
-    let mut small_parties_first = false;
     let mut bump = false;
     let mut bump_amt : u32 = 0;
+
     if experiment_num == 1 {
-        bump = true;
-        bump_amt = 0;
+        bump = false;
     }
     if experiment_num == 2 {
         bump = true;
@@ -226,8 +225,6 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
         bump_amt = 500;
     }
 
-    // println!("bumping? {}, by {}", bump, bump_amt);
-
     let labor = [1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1177, 1178, 1192, 1193, 1194, 1195, 1196, 1197, 1310, 1311, 1312, 1313, 1314, 1315, 1374, 1375, 1376, 1377, 1378, 1379, 1436, 1437, 1438, 1439, 1440, 1441, 1442, 1443, 1552, 1553, 1554, 1555, 1556, 1557, 1558, 998, 999];
     let libs = [1004, 1005, 1028, 1029, 1031, 1033, 1034, 1036, 1037, 1039, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1330, 1331, 1332, 1333, 1334, 1335, 1387, 1388, 1389, 1390, 1391, 1392, 1501, 1503, 1504, 1505, 1506, 1604, 1605, 1606, 1607, 1608, 1609, 1610];
 
@@ -244,78 +241,48 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
     // println!("\nNew vote, size: {}", size);
 
 
-    let mut found = false;
-    let mut found_lib : u32 = 0;
-    let mut found_lab : u32 = 0;
-
-    for (idx, group) in &group_pref_map {
-        if small_parties_first { 
-            for grp in group.iter() {
-                if labor.contains(&grp) {
-                    found_lab = *idx;
-                    found = true;
-                    break
-                }
-                else if libs.contains(&grp) {
-                    found_lib = *idx;
-                    found = true;
-                    break
-                }
-            }
-
-            if found == false {
-                // Let the other parties go first
-                flat.extend_from_slice(group);
-            }
-            found = false;
-        } else if bump {
-            for grp in group.iter() {
-                if labor.contains(&grp) {
-                    found_lab = *idx;
-                    found = true;
-                    break
-                }
-                else if libs.contains(&grp) {
-                    found_lib = *idx;
-                    found = true;
-                    break
-                }
-            }
-        } else {
-            flat.extend_from_slice(group);
-        }
-    }
-
     if bump {
+        let mut found = false;
+        let mut found_lib : u32 = 0;
+        let mut found_lab : u32 = 0;
+
+        for (idx, group) in &group_pref_map {        // Find the indexs of the votes for the major parties
+            for grp in group.iter() {
+                if labor.contains(&grp) {
+                    found_lab = *idx;
+                    found = true;
+                    break
+                }
+                else if libs.contains(&grp) {
+                    found_lib = *idx;
+                    found = true;
+                    break
+                }
+            }
+        }
+
         let mut lib_cans = None;
         let mut lab_cans = None;
-        let mut lib_countdown : i32 = found_lib as i32 + bump_amt as i32;
-        let mut lab_countdown : i32 = found_lab as i32 + bump_amt as i32;
         let mut new_lib_idx = 0;
         let mut new_lab_idx = 0;
 
         if found_lib > 0 {
             new_lib_idx = found_lib + bump_amt;
             lib_cans = group_pref_map.get(&found_lib);
-        } else {
-            lib_countdown = -1;
         }
         if found_lab > 0 {
             new_lab_idx = found_lab + bump_amt;
             lab_cans = group_pref_map.get(&found_lab);
-        } else {
-            lab_countdown = -1;
         }
+
 
         let mut put_lab_first = false;
         let mut put_lib_first = false;
         let mut skip_lab = false;
         let mut skip_lib = false;
-        if (found_lib as i32 - found_lab as i32).abs() == 1 && found_lib > 0 && found_lab > 0 {
-            // parties are next to each other
-            if bump_amt >= 1 {
-                // if we are bumping, and parties are next to each other, it messes with the idxs
-                // Use a flag to work around
+
+        if (found_lib as i32 - found_lab as i32).abs() == 1 && found_lib > 0 && found_lab > 0 {  // if the parties are next to each other in voting order
+            if bump_amt >= 1 {                                                                   // then setup some bools to handle the special cases
                 if found_lab < found_lib {
                     put_lab_first = true;
                 } else {
@@ -324,7 +291,7 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
             }
             if bump_amt >= 2 {
                 // If the bump is bigger than 1, we need to not inject one of the parties when we
-                // think
+                // normally would, and instead skip one turn
                 if found_lab < found_lib {
                     skip_lab = true;
                 } else {
@@ -333,130 +300,58 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
             }
 
         }
+
         let mut max_idx = 0;
-        if bump_amt > 0 {
-            max_idx = 0;
-            //println!("\nlib: {}, lab: {}, bump_amt: {}", found_lib, found_lab, bump_amt);
-            for (idx, group) in &group_pref_map {
-                //print!("idx: {}, new_lab_idx: {}, new_lib_idx: {}", *idx, new_lab_idx, new_lib_idx);
-                max_idx = *idx;
-                if *idx == found_lib || *idx == found_lab {
-                    //println!(" x");
-                    continue;
-                }
-                if *idx == new_lab_idx {
-                    flat.extend_from_slice(group);  // because we will have skipped, we need to add another normal vote
-                    if ! skip_lab {
-                        //print!(" injected");
-                        if put_lib_first {
-                            //print!(" lib");
-                            flat.extend_from_slice(lib_cans.unwrap());
-                        }
-                        //println!(" lab");
-                        flat.extend_from_slice(lab_cans.unwrap());
-                    }
-                } else if *idx == new_lib_idx {
-                    flat.extend_from_slice(group);
-                    if ! skip_lib {
-                        //print!(" injected");
-                        if put_lab_first {
-                            //print!(" lab");
-                            flat.extend_from_slice(lab_cans.unwrap());
-                        }
-                        //println!(" lib");
+        for (idx, group) in &group_pref_map {
+            max_idx = *idx;
+            if *idx == found_lib || *idx == found_lab {        // If we have found an original vote for a major party, skip it
+                continue;
+            }
+            if *idx == new_lab_idx {                           // if we have found where Labor now *should* be (based on the bumping).
+                flat.extend_from_slice(group);                 // Because we will have skipped the original vote for the major party, we need to add another normal vote
+                if ! skip_lab {                                // Handle some special cases where the major parties are one after each other in voting order.
+                    if put_lib_first {
                         flat.extend_from_slice(lib_cans.unwrap());
                     }
-                } else {
-                    //println!("");
-                    flat.extend_from_slice(group);
+                    flat.extend_from_slice(lab_cans.unwrap()); // Insert our bumped major party
                 }
-                //println!("\t{:?}", flat);
-            }
-            if new_lab_idx > max_idx && new_lab_idx < new_lib_idx {
-                // Both parties didn't make the cut, but Labor goes first
-                //println!("Cleanup, injected lab lib");
-                flat.extend_from_slice(lab_cans.unwrap());
-                flat.extend_from_slice(lib_cans.unwrap());
-            } else if new_lib_idx > max_idx && new_lib_idx < new_lab_idx {
-                // Both parties didn't make the cut, but Libs go first
-                //println!("Cleanup, injected lib lab");
-                flat.extend_from_slice(lib_cans.unwrap());
-                flat.extend_from_slice(lab_cans.unwrap());
-            } else {
-                if new_lab_idx > max_idx  {
-                    // Labor didn't make it, so add it on the end
-                    //println!("Cleanup, injected lab");
-                    flat.extend_from_slice(lab_cans.unwrap());
-                } else if new_lib_idx > max_idx {
-                    // Libs didn't make it, so add it on the end
-                    //println!("Cleanup, injected lib");
+            } else if *idx == new_lib_idx {                    // Same as above, but with parties switched
+                flat.extend_from_slice(group);
+                if ! skip_lib {
+                    if put_lab_first {
+                        flat.extend_from_slice(lab_cans.unwrap());
+                    }
                     flat.extend_from_slice(lib_cans.unwrap());
                 }
-            }
-            //println!("\t{:?}", flat);
-
-
-            //println!("max_idx: {}", max_idx);
-        } else {
-            // Normal election
-            for (idx, group) in &group_pref_map {
+            } else {                                           // If nothing special is happening, just insert the original vote
                 flat.extend_from_slice(group);
             }
         }
-        /*
-        println!("\nlib: {}, lab: {}", found_lib, found_lab);
-        for (idx, group) in &group_pref_map {
-            lib_countdown = lib_countdown - 1;
-            lab_countdown = lab_countdown - 1;
-            print!("idx: {}, libcd: {}, labcd: {}", *idx, lib_countdown, lab_countdown);
-            if lib_countdown == 0 {
-                println!(" Injected Lib!");
-                if lab_countdown != -1 {
-                    flat.extend_from_slice(group);
-                }
-                flat.extend_from_slice(lib_cans.unwrap());
-            } else if lab_countdown == 0 {
-                if lib_countdown != -1 {
-                    flat.extend_from_slice(group);
-                }
-                println!(" Injected Lab!");
+        
+        // Now deal with any major parties who *were* voted for, but were bumped too far (outside
+        // the index range)
+        if new_lab_idx > max_idx && new_lab_idx < new_lib_idx {
+            // Both parties didn't make the cut, but Labor goes first
+            flat.extend_from_slice(lab_cans.unwrap());
+            flat.extend_from_slice(lib_cans.unwrap());
+        } else if new_lib_idx > max_idx && new_lib_idx < new_lab_idx {
+            // Both parties didn't make the cut, but Libs go first
+            flat.extend_from_slice(lib_cans.unwrap());
+            flat.extend_from_slice(lab_cans.unwrap());
+        } else {
+            if new_lab_idx > max_idx  {
+                // Labor didn't make it, so add it on the end
                 flat.extend_from_slice(lab_cans.unwrap());
-            } else {
-                if *idx == found_lib || *idx  == found_lab {
-                    // If we are *supposed* to put in a Lib or Lab vote, skip it for now.
-                    println!("x");
-                } else {
-                    flat.extend_from_slice(group);
-                    println!("");
-                }
+            } else if new_lib_idx > max_idx {
+                // Libs didn't make it, so add it on the end
+                flat.extend_from_slice(lib_cans.unwrap());
             }
-            println!("\t{:?}", flat);
         }
-        */
-        //if lib_countdown >
-    } else if small_parties_first { 
-        if found_lib > 0 && found_lab > 0 {
-            let lib_cans = group_pref_map.get(&found_lib).unwrap();
-            let lab_cans = group_pref_map.get(&found_lab).unwrap();
 
-            // found both major parties
-            if found_lib < found_lab { 
-                // libs are preferred over lab 
-                flat.extend_from_slice(lib_cans);
-                flat.extend_from_slice(lab_cans);
-            } else {
-                // lab is preffered over libs
-                flat.extend_from_slice(lab_cans);
-                flat.extend_from_slice(lib_cans);
-            }
-        } else if found_lib > 0 {
-            // found only the libs
-            let lib_cans = group_pref_map.get(&found_lib).unwrap();
-            flat.extend_from_slice(lib_cans);
-        } else if found_lab > 0 {
-            // found only lab
-            let lab_cans = group_pref_map.get(&found_lab).unwrap();
-            flat.extend_from_slice(lab_cans);
+    } else {
+        // Normal election with no bumping
+        for (idx, group) in &group_pref_map {
+            flat.extend_from_slice(group);
         }
     }
 
