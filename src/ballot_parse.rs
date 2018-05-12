@@ -242,7 +242,6 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
 
 
     if bump {
-        let mut found = false;
         let mut found_lib : u32 = 0;
         let mut found_lab : u32 = 0;
 
@@ -250,12 +249,10 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
             for grp in group.iter() {
                 if labor.contains(&grp) {
                     found_lab = *idx;
-                    found = true;
                     break
                 }
                 else if libs.contains(&grp) {
                     found_lib = *idx;
-                    found = true;
                     break
                 }
             }
@@ -350,7 +347,7 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
 
     } else {
         // Normal election with no bumping
-        for (idx, group) in &group_pref_map {
+        for (_, group) in &group_pref_map {
             flat.extend_from_slice(group);
         }
     }
