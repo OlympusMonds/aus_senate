@@ -10,7 +10,14 @@ You can read more about this project on [Medium][medium-article].
 All code in [Rust][].
 
 # The modifications
+
 I have done my best to modify the code to enable us to run experiments on different voting patterns. So far it mostly supports changing the order of the two major Australian parties to see the effect.
+
+# Some results
+
+![Six different experiments run](https://raw.githubusercontent.com/OlympusMonds/aus_senate/master/results.png)
+
+This shows the output of running `python3 vis.py`, which takes the results of the experimental elections and visualises them. We can see that even bumping the major parties' preferences by only 1 spot, there is a huge redistribution of elected senators.
 
 # Running the Code
 
