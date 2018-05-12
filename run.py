@@ -47,18 +47,18 @@ def run():
 
             #output = sp.check_output(cargo + args, stderr=sp.DEVNULL, universal_newlines=True)
             output = sp.check_output(cargo + args, universal_newlines=True)
+            print(output)
             # Get party counts
             party_count = defaultdict(int)
             elected_people = output.split("=== Elected ===\n")[-1]
             per_person = elected_people.split("\n")
             for person in per_person:
                 if person:
-                    party = person.split('(')[-1].split(')')[0]
+                    party = person.split('{')[-1].split('}')[0]
                     party_count[party] += 1
 
             json_out = { "state": state, "results": party_count }
             results[exp_name].append(json_out)
-            #print(exp_name, "\n", json.dumps(json_out)) 
 
             print("Completed election for {} at {}".format(state, timestamp()))
         #print(json.dumps(results))

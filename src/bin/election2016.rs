@@ -67,7 +67,7 @@ fn main_with_result() -> Result<(), Box<Error>> {
     println!("=== Elected ===");
     for &(ref c, ref votes) in &election_result.senators {
         println!(
-            "{} {} ({}) [{} votes]",
+            "{} {} {{{}}} [{} votes]",
             c.other_names,
             c.surname,
             c.party,
