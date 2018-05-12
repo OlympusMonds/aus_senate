@@ -9,7 +9,6 @@ from datetime import datetime
 from collections import defaultdict
 
 cargo = ["cargo", "run", "--release", "--bin", "election2016", "--"]
-#cargo = ["cargo", "run", "--bin", "election2016", "--"]
 
 experiments = {"exp1_no-change" : 1,
                "exp2_bump-1" : 2,
@@ -47,7 +46,6 @@ def run():
 
             #output = sp.check_output(cargo + args, stderr=sp.DEVNULL, universal_newlines=True)
             output = sp.check_output(cargo + args, universal_newlines=True)
-            print(output)
             # Get party counts
             party_count = defaultdict(int)
             elected_people = output.split("=== Elected ===\n")[-1]
@@ -61,7 +59,6 @@ def run():
             results[exp_name].append(json_out)
 
             print("Completed election for {} at {}".format(state, timestamp()))
-        #print(json.dumps(results))
 
     with open("out.json", 'w') as ok:
         json.dump(results, ok)

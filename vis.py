@@ -43,10 +43,11 @@ def main():
 
 
 
-    ax = plt.figure().gca()
 
     # Plotting
-    width = 0.12
+    fig = plt.figure(figsize=(15, 5))
+    ax = fig.gca()
+    width = 1 / (len(res) + 2)
     cumwidth = 0.
     for exp in res:
         names =  sorted(list(exp["results"].keys()))
@@ -59,10 +60,11 @@ def main():
     plt.ylabel('Number of senators')
     plt.title('Effect of bumping the major parties down the preference list')
 
-    plt.xticks(ind + width * 6 / 2, names, rotation=90)
+    plt.xticks(ind + width * len(res) / 2, names, rotation=90)
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     plt.legend(loc='best')
-    plt.show()
+    #plt.show()
+    plt.savefig("results.png",bbox_inches='tight', pad_inches=0)
 
 if __name__ == "__main__":
     main()
