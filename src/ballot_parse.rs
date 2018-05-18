@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 use std::cmp::{Ordering, min};
 use std::cmp::Ordering::*;
 
+extern crate rand;
+
 use ballot::*;
 use candidate::*;
 use group::Group;
@@ -197,6 +199,7 @@ pub fn flatten_pref_map(pref_map: PrefMap) -> Vec<CandidateId> {
 pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usize) -> Vec<CandidateId> {
     let size = group_pref_map.values().map(|x| x.len()).sum();
     let mut flat = Vec::with_capacity(size);
+    let mut orig_flat = Vec::with_capacity(size);
 
     let mut bump = false;
     let mut bump_amt : u32 = 0;
@@ -224,6 +227,55 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
         bump = true;
         bump_amt = 500;
     }
+    if experiment_num == 7 {
+        let x = rand::random::<f64>();
+        if x >= 0.9 {
+            bump = true;
+            bump_amt = 1;
+        }
+    }
+    if experiment_num == 8 {
+        let x = rand::random::<f64>();
+        if x >= 0.7555 {
+            bump = true;
+            bump_amt = 1;
+        }
+    }
+    if experiment_num == 9 {
+        let x = rand::random::<f64>();
+        if x >= 0.66 {
+            bump = true;
+            bump_amt = 1;
+        }
+    }
+    if experiment_num == 10 {
+        let x = rand::random::<f64>();
+        if x >= 0.499999 {
+            bump = true;
+            bump_amt = 1;
+        }
+    }
+    if experiment_num == 11 {
+        let x = rand::random::<f64>();
+        if x >= 0.33 {
+            bump = true;
+            bump_amt = 1;
+        }
+    }
+    if experiment_num == 12 {
+        let x = rand::random::<f64>();
+        if x >= 0.25 {
+            bump = true;
+            bump_amt = 1;
+        }
+    }
+    if experiment_num == 13 {
+        let x = rand::random::<f64>();
+        if x >= 0.1 {
+            bump = true;
+            bump_amt = 1;
+        }
+    }
 
     let labor = [1058, 1059, 1060, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1069, 1177, 1178, 1192, 1193, 1194, 1195, 1196, 1197, 1310, 1311, 1312, 1313, 1314, 1315, 1374, 1375, 1376, 1377, 1378, 1379, 1436, 1437, 1438, 1439, 1440, 1441, 1442, 1443, 1552, 1553, 1554, 1555, 1556, 1557, 1558, 998, 999];
     let libs = [1004, 1005, 1028, 1029, 1031, 1033, 1034, 1036, 1037, 1039, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1330, 1331, 1332, 1333, 1334, 1335, 1387, 1388, 1389, 1390, 1391, 1392, 1501, 1503, 1504, 1505, 1506, 1604, 1605, 1606, 1607, 1608, 1609, 1610];
@@ -234,18 +286,18 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
     // Where the [1004, 1005] are potential senators from the SAME party
     // I'm guessing the order (1, 2, 3, ...) is which one people put first
 
-    //for (idx, group) in group_pref_map {
-    //    println!("{}, {:?}", idx, group);
-    //}
-
-    // println!("\nNew vote, size: {}", size);
-
+    let mut orig_count = 0;
+    let mut new_count = 0;
+    let mut mid_count = 0;
 
     if bump {
         let mut found_lib : u32 = 0;
         let mut found_lab : u32 = 0;
 
-        for (idx, group) in &group_pref_map {        // Find the indexs of the votes for the major parties
+        // find the indexs of the votes for the major parties
+        for (idx, group) in &group_pref_map {
+            orig_flat.extend_from_slice(group);
+            orig_count += 1;
             for grp in group.iter() {
                 if labor.contains(&grp) {
                     found_lab = *idx;
@@ -262,87 +314,66 @@ pub fn flatten_group_pref_map(group_pref_map: GroupPrefMap, experiment_num: usiz
         let mut lab_cans = None;
         let mut new_lib_idx = 0;
         let mut new_lab_idx = 0;
+        let mut lib_bump = bump_amt as f32;
+        let mut lab_bump = bump_amt as f32;
 
-        if found_lib > 0 {
-            new_lib_idx = found_lib + bump_amt;
-            lib_cans = group_pref_map.get(&found_lib);
-        }
-        if found_lab > 0 {
-            new_lab_idx = found_lab + bump_amt;
-            lab_cans = group_pref_map.get(&found_lab);
-        }
+        let expansion_factor = 10;  // needs to be even
+        let mut bigger_idx = 0;
+        let mut new_grp_pref_map = GroupPrefMap::new();
 
-
-        let mut put_lab_first = false;
-        let mut put_lib_first = false;
-        let mut skip_lab = false;
-        let mut skip_lib = false;
-
-        if (found_lib as i32 - found_lab as i32).abs() == 1 && found_lib > 0 && found_lab > 0 {  // if the parties are next to each other in voting order
-            if bump_amt >= 1 {                                                                   // then setup some bools to handle the special cases
-                if found_lab < found_lib {
-                    put_lab_first = true;
-                } else {
-                    put_lib_first = true;
-                }
-            }
-            if bump_amt >= 2 {
-                // If the bump is bigger than 1, we need to not inject one of the parties when we
-                // normally would, and instead skip one turn
-                if found_lab < found_lib {
-                    skip_lab = true;
-                } else {
-                    skip_lib = true;
-                }
-            }
-
-        }
-
-        let mut max_idx = 0;
+        // Expand the indexes by an expansion factor, so we can slot in new
+        // indexes inbetween them. Drop out the major parties for now.
         for (idx, group) in &group_pref_map {
-            max_idx = *idx;
-            if *idx == found_lib || *idx == found_lab {        // If we have found an original vote for a major party, skip it
+            bigger_idx = *idx * expansion_factor;
+            if *idx == found_lib || *idx == found_lab {
                 continue;
             }
-            if *idx == new_lab_idx {                           // if we have found where Labor now *should* be (based on the bumping).
-                flat.extend_from_slice(group);                 // Because we will have skipped the original vote for the major party, we need to add another normal vote
-                if ! skip_lab {                                // Handle some special cases where the major parties are one after each other in voting order.
-                    if put_lib_first {
-                        flat.extend_from_slice(lib_cans.unwrap());
-                    }
-                    flat.extend_from_slice(lab_cans.unwrap()); // Insert our bumped major party
-                }
-            } else if *idx == new_lib_idx {                    // Same as above, but with parties switched
-                flat.extend_from_slice(group);
-                if ! skip_lib {
-                    if put_lab_first {
-                        flat.extend_from_slice(lab_cans.unwrap());
-                    }
-                    flat.extend_from_slice(lib_cans.unwrap());
-                }
-            } else {                                           // If nothing special is happening, just insert the original vote
-                flat.extend_from_slice(group);
+            mid_count += 1;
+            new_grp_pref_map.insert(bigger_idx, group);
+        }
+
+        // Handle a special case. If the majors are next to each other
+        // then the one ahead needs an extra bump to allow it to move 
+        // appropriately
+        if found_lib > 0 && found_lab > 0 {
+            if found_lab as i32 - found_lib as i32 == 1 as i32 {
+                lib_bump += 0.9;
+            } 
+            if found_lib as i32 - found_lab as i32 == 1 as i32 {
+                lab_bump += 0.9;
             }
         }
-        
-        // Now deal with any major parties who *were* voted for, but were bumped too far (outside
-        // the index range)
-        if new_lab_idx > max_idx && new_lab_idx < new_lib_idx {
-            // Both parties didn't make the cut, but Labor goes first
-            flat.extend_from_slice(lab_cans.unwrap());
-            flat.extend_from_slice(lib_cans.unwrap());
-        } else if new_lib_idx > max_idx && new_lib_idx < new_lab_idx {
-            // Both parties didn't make the cut, but Libs go first
-            flat.extend_from_slice(lib_cans.unwrap());
-            flat.extend_from_slice(lab_cans.unwrap());
-        } else {
-            if new_lab_idx > max_idx  {
-                // Labor didn't make it, so add it on the end
-                flat.extend_from_slice(lab_cans.unwrap());
-            } else if new_lib_idx > max_idx {
-                // Libs didn't make it, so add it on the end
-                flat.extend_from_slice(lib_cans.unwrap());
-            }
+
+        // Now insert the major parties back in, with a new index that slots
+        // between the other votes appropriately!
+        if found_lab > 0 {
+            new_lab_idx = (found_lab * expansion_factor) + (lab_bump * expansion_factor as f32) as u32 + (expansion_factor / 2);
+            lab_cans = group_pref_map.get(&found_lab);
+            new_grp_pref_map.insert(new_lab_idx, lab_cans.unwrap());
+        }
+
+        if found_lib > 0 {
+            new_lib_idx = (found_lib * expansion_factor) + (lib_bump * expansion_factor as f32) as u32 + (expansion_factor / 2);
+            lib_cans = group_pref_map.get(&found_lib);
+            new_grp_pref_map.insert(new_lib_idx, lib_cans.unwrap());
+        }
+
+
+        // Sort the new expanded groups
+        //let keys: Vec<_> = new_grp_pref_map.keys().cloned().collect();
+        //println!("{:?}", keys);
+
+        for (_, group) in &new_grp_pref_map {
+            // A BTreeHash is already sorted..?
+            new_count += 1;
+            flat.extend_from_slice(group);
+        }
+
+        if orig_count != new_count {
+            println!("\nOrig: {}, new: {}, mid: {}", orig_count, new_count, mid_count);
+            println!("\nfound_lab: {}, found_lib: {}", found_lab, found_lib);
+            println!("o: {:?}", orig_flat);
+            println!("n: {:?}", flat);
         }
 
     } else {
