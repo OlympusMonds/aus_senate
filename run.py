@@ -9,6 +9,7 @@ from datetime import datetime
 from collections import defaultdict
 
 cargo = ["cargo", "run", "--release", "--bin", "election2016", "--"]
+#cargo = ["cargo", "run", "--bin", "election2016", "--"]
 
 experiments = {"exp1_no-change" : 1,
                "exp2_bump-1" : 2,
@@ -16,6 +17,16 @@ experiments = {"exp1_no-change" : 1,
                "exp4_bump-3" : 4,
                "exp5_bump-4" : 5,
                "exp6_bump-bottom" : 6,}
+
+experiments = {"exp1_no-change" : 1,
+               "exp2_10%_chance_bump-1" : 7,
+               "exp3_25%_chance_bump-1" : 8,
+               "exp4_33%_chance_bump-1" : 9,
+               "exp5_50%_chance_bump-1" : 10,
+               "exp6_66%_chance_bump-1" : 11,
+               "exp7_75%_chance_bump-1" : 12,
+               "exp8_90%_chance_bump-1" : 13,
+               "exp9_100%_chance_bump-1" : 2,}
 
 results = defaultdict(list)
 
@@ -27,7 +38,7 @@ def run():
     if len(sys.argv) > 1:
         states = {s: n for (s, n) in states.items() if s in sys.argv[1:]}
 
-    fetch_data.fetch(states)
+    #fetch_data.fetch(states)
 
     data_dir = "data"
 
